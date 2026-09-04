@@ -11,6 +11,7 @@ class TelegramMediaInfo(BaseModel):
     """Normalized metadata extracted from incoming Telegram media messages."""
 
     user_id: int = Field(..., description="Telegram user ID")
+    chat_id: Optional[int] = Field(default=None, description="Telegram chat ID")
     telegram_message_id: int = Field(..., description="Telegram message ID")
     file_id: str = Field(..., description="Telegram download file ID")
     file_unique_id: str = Field(..., description="Telegram unique file ID")
@@ -31,6 +32,8 @@ class TelegramMediaService:
             return None
 
         user_id = message.from_user.id
+        chat = getattr(message, "chat", None)
+        chat_id = chat.id if chat else user_id
         msg_id = message.message_id
         caption = message.caption
 
@@ -40,6 +43,7 @@ class TelegramMediaService:
             filename = doc.file_name or f"document_{doc.file_unique_id}.bin"
             return TelegramMediaInfo(
                 user_id=user_id,
+                chat_id=chat_id,
                 telegram_message_id=msg_id,
                 file_id=doc.file_id,
                 file_unique_id=doc.file_unique_id,
@@ -59,6 +63,7 @@ class TelegramMediaService:
             filename = f"photo_{best_photo.file_unique_id}.jpg"
             return TelegramMediaInfo(
                 user_id=user_id,
+                chat_id=chat_id,
                 telegram_message_id=msg_id,
                 file_id=best_photo.file_id,
                 file_unique_id=best_photo.file_unique_id,
@@ -75,6 +80,7 @@ class TelegramMediaService:
             filename = video.file_name or f"video_{video.file_unique_id}.mp4"
             return TelegramMediaInfo(
                 user_id=user_id,
+                chat_id=chat_id,
                 telegram_message_id=msg_id,
                 file_id=video.file_id,
                 file_unique_id=video.file_unique_id,
@@ -91,6 +97,7 @@ class TelegramMediaService:
             filename = audio.file_name or f"audio_{audio.file_unique_id}.mp3"
             return TelegramMediaInfo(
                 user_id=user_id,
+                chat_id=chat_id,
                 telegram_message_id=msg_id,
                 file_id=audio.file_id,
                 file_unique_id=audio.file_unique_id,
@@ -107,6 +114,7 @@ class TelegramMediaService:
             filename = f"voice_{voice.file_unique_id}.ogg"
             return TelegramMediaInfo(
                 user_id=user_id,
+                chat_id=chat_id,
                 telegram_message_id=msg_id,
                 file_id=voice.file_id,
                 file_unique_id=voice.file_unique_id,
@@ -123,6 +131,7 @@ class TelegramMediaService:
             filename = anim.file_name or f"animation_{anim.file_unique_id}.mp4"
             return TelegramMediaInfo(
                 user_id=user_id,
+                chat_id=chat_id,
                 telegram_message_id=msg_id,
                 file_id=anim.file_id,
                 file_unique_id=anim.file_unique_id,
@@ -139,6 +148,7 @@ class TelegramMediaService:
             filename = f"videonote_{vnote.file_unique_id}.mp4"
             return TelegramMediaInfo(
                 user_id=user_id,
+                chat_id=chat_id,
                 telegram_message_id=msg_id,
                 file_id=vnote.file_id,
                 file_unique_id=vnote.file_unique_id,

@@ -68,18 +68,32 @@ class BackupService:
 
         # 2. Settings and max file size quota validation
         user_settings = await self.settings_repo.get_or_create_settings(user_id)
-        max_size = user_settings.get("max_file_size", 52428800)
+        max_size = user_settings.get("max_file_size", 4294967296)
 
-        if media_info.file_size and media_info.file_size > max_size:
-            max_formatted = format_bytes(max_size)
-            file_formatted = format_bytes(media_info.file_size)
-            logger.warning(
-                f"Rejected oversized file for user {user_id}: {file_formatted} > limit {max_formatted}"
-            )
-            raise ValidationError(
-                message=f"File size ({file_formatted}) exceeds your allowed limit of {max_formatted}.",
-                details={"file_size": media_info.file_size, "max_allowed": max_size},
-            )
+        # Exact 4 GiB hard platform limit (4,294,967,296 bytes)
+        HARD_LIMIT_4_GIB = 4294967296
+        if media_info.file_size is not None:
+            if media_info.file_size < 0:
+                raise ValidationError(
+                    message="Invalid negative file size.",
+                    details={"file_size": media_info.file_size},
+                )
+            if media_info.file_size > HARD_LIMIT_4_GIB:
+                file_formatted = format_bytes(media_info.file_size)
+                raise ValidationError(
+                    message=f"File size ({file_formatted}) exceeds maximum supported limit of 4 GiB (4,294,967,296 bytes).",
+                    details={"file_size": media_info.file_size, "max_allowed": HARD_LIMIT_4_GIB},
+                )
+            if media_info.file_size > max_size:
+                max_formatted = format_bytes(max_size)
+                file_formatted = format_bytes(media_info.file_size)
+                logger.warning(
+                    f"Rejected oversized file for user {user_id}: {file_formatted} > limit {max_formatted}"
+                )
+                raise ValidationError(
+                    message=f"File size ({file_formatted}) exceeds your allowed limit of {max_formatted}.",
+                    details={"file_size": media_info.file_size, "max_allowed": max_size},
+                )
 
         # 3. Idempotency verification: check if this message was already enqueued
         existing_item = await self.item_repo.get_by_message_id(
@@ -102,10 +116,14 @@ class BackupService:
                 is_duplicate=True,
             )
 
-        # 4. Create BackupItem
+        # 4. Determine initial transfer method
+        transfer_method = "mtproto" if (media_info.file_size and media_info.file_size > 20 * 1024 * 1024) else "bot_api"
+
+        # 5. Create BackupItem
         default_folder_id = user_settings.get("default_folder_id")
         item_model = BackupItemModel(
             user_id=user_id,
+            chat_id=media_info.chat_id,
             telegram_message_id=media_info.telegram_message_id,
             telegram_file_id=media_info.file_id,
             telegram_file_unique_id=media_info.file_unique_id,
@@ -114,6 +132,7 @@ class BackupService:
             mime_type=media_info.mime_type,
             file_size=media_info.file_size,
             caption=media_info.caption,
+            transfer_method=transfer_method,
             folder_id=default_folder_id,
             status=ItemStatus.PENDING,
         )

@@ -1,0 +1,119 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: telegram_backup_mongodb_prod
+    restart: unless-stopped
+    # In production, MongoDB is NOT exposed to public host ports (internal network only)
+    expose:
+      - "27017"
+    environment:
+      - MONGO_INITDB_DATABASE=telegram_backup
+    volumes:
+      - mongo_prod_data:/data/db
+    networks:
+      - backup_prod_net
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval \"db.adminCommand('ping')\" --quiet || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram_backup_api_prod
+    restart: unless-stopped
+    ports:
+      - "${API_BIND_IP:-127.0.0.1}:8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DATABASE=telegram_backup
+      - STORAGE_TYPE=local
+      - STORAGE_PATH=/app/storage
+      - BOT_TOKEN=${BOT_TOKEN}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - WEB_SESSION_SECRET=${WEB_SESSION_SECRET}
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - WEB_COOKIE_SECURE=true
+      - WEB_BASE_URL=${WEB_BASE_URL:-https://backup.example.com}
+    volumes:
+      - app_prod_storage:/app/storage
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backup_prod_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram_backup_bot_prod
+    restart: unless-stopped
+    command: ["python", "-m", "app.bot.bot"]
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - BOT_TOKEN=${BOT_TOKEN}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DATABASE=telegram_backup
+      - STORAGE_TYPE=local
+      - STORAGE_PATH=/app/storage
+    volumes:
+      - app_prod_storage:/app/storage
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backup_prod_net
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram_backup_worker_prod
+    restart: unless-stopped
+    command: ["python", "-m", "app.workers.worker"]
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - BOT_TOKEN=${BOT_TOKEN}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DATABASE=telegram_backup
+      - STORAGE_TYPE=local
+      - STORAGE_PATH=/app/storage
+      - WORKER_CONCURRENCY=4
+      - WORKER_POLL_INTERVAL=2
+      - WORKER_LOCK_TIMEOUT=300
+      - WORKER_MAX_ATTEMPTS=3
+    volumes:
+      - app_prod_storage:/app/storage
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backup_prod_net
+
+volumes:
+  mongo_prod_data:
+    driver: local
+  app_prod_storage:
+    driver: local
+
+networks:
+  backup_prod_net:
+    driver: bridge

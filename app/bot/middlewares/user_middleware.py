@@ -13,7 +13,11 @@ from app.database.repositories.settings_repo import SettingsRepository
 from app.database.repositories.storage_usage_repo import StorageUsageRepository
 from app.database.repositories.tag_repo import TagRepository
 from app.database.repositories.user_repo import UserRepository
+from app.services.backup_management_service import BackupManagementService
 from app.services.backup_service import BackupService
+from app.services.folder_service import FolderService
+from app.services.search_service import SearchService
+from app.services.tag_service import TagService
 
 logger = get_logger(__name__)
 
@@ -31,6 +35,10 @@ class UserMiddleware(BaseMiddleware):
         self.settings_repo = SettingsRepository(db)
         self.storage_usage_repo = StorageUsageRepository(db)
         self.backup_service = BackupService(db)
+        self.management_service = BackupManagementService(db)
+        self.search_service = SearchService(db)
+        self.folder_service = FolderService(db)
+        self.tag_service = TagService(db)
 
     async def __call__(
         self,
@@ -64,5 +72,9 @@ class UserMiddleware(BaseMiddleware):
         data["settings_repo"] = self.settings_repo
         data["storage_usage_repo"] = self.storage_usage_repo
         data["backup_service"] = self.backup_service
+        data["management_service"] = self.management_service
+        data["search_service"] = self.search_service
+        data["folder_service"] = self.folder_service
+        data["tag_service"] = self.tag_service
 
         return await handler(event, data)

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Telegram Backup Bot</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-icon">📦</span>
+        <div>
+          <h1 class="brand-title">Backup Bot</h1>
+          <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Web Dashboard</span>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li>
+          <a href="#" class="nav-item active" data-tab="dashboard">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-item" data-tab="files">
+            <span class="nav-icon">📁</span>
+            <span>My Files</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-item" data-tab="search">
+            <span class="nav-icon">🔍</span>
+            <span>Search</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-item" data-tab="folders">
+            <span class="nav-icon">📂</span>
+            <span>Folders</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-item" data-tab="tags">
+            <span class="nav-icon">🏷</span>
+            <span>Tags</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-item" data-tab="stats">
+            <span class="nav-icon">📈</span>
+            <span>Statistics</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="user-profile">
+        <div class="user-info">
+          <div id="user-avatar-initial" class="user-avatar">U</div>
+          <div class="user-names">
+            <span id="user-display-name" class="user-name">Loading...</span>
+            <span id="user-display-handle" class="user-handle">@username</span>
+          </div>
+        </div>
+        <button id="btn-logout" class="btn-logout" title="Sign Out">🚪</button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- 1. Dashboard View -->
+      <section id="view-dashboard" class="view-section active">
+        <div class="content-header">
+          <div>
+            <h2 class="page-title">Overview Dashboard</h2>
+            <p class="page-subtitle">Summary of your Telegram backup vault and recent activity</p>
+          </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-blue">📁</div>
+            <div class="stat-info">
+              <span class="stat-label">Total Backups</span>
+              <span id="stat-total-files" class="stat-value">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-purple">💾</div>
+            <div class="stat-info">
+              <span class="stat-label">Storage Used</span>
+              <span id="stat-total-size" class="stat-value">0 B</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-green">✅</div>
+            <div class="stat-info">
+              <span class="stat-label">Completed</span>
+              <span id="stat-completed" class="stat-value">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-yellow">⏳</div>
+            <div class="stat-info">
+              <span class="stat-label">Processing / Queued</span>
+              <span id="stat-processing" class="stat-value">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions & Recent Files Panel -->
+        <div class="card-panel">
+          <div class="panel-header">
+            <h3 class="panel-title">Recent Backup Files</h3>
+            <button class="btn btn-secondary btn-sm" onclick="navigateToTab('files')">View All Files →</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Filename</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="files-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="files-empty-state" class="empty-state" style="display: none;">
+            <div class="empty-icon">📦</div>
+            <h4 class="empty-title">No backed-up files yet</h4>
+            <p class="empty-desc">Send or forward files to the Telegram bot to archive your first backup.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Files View -->
+      <section id="view-files" class="view-section">
+        <div class="content-header">
+          <div>
+            <h2 id="files-page-header-title" class="page-title">My Backed-up Files</h2>
+            <p class="page-subtitle">Browse, filter, inspect, and manage your private cloud archive</p>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
+            <div class="toolbar">
+              <select id="filter-status" class="select-field" onchange="FilesModule.currentStatus = this.value || null; FilesModule.loadFiles(1);">
+                <option value="">All Statuses</option>
+                <option value="completed">Completed</option>
+                <option value="processing">Processing</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+              </select>
+
+              <select id="filter-media-type" class="select-field" onchange="FilesModule.currentMediaType = this.value || null; FilesModule.loadFiles(1);">
+                <option value="">All Media Types</option>
+                <option value="document">Documents</option>
+                <option value="photo">Photos</option>
+                <option value="video">Videos</option>
+                <option value="audio">Audio</option>
+                <option value="voice">Voice</option>
+                <option value="animation">Animations</option>
+              </select>
+            </div>
+
+            <button class="btn btn-secondary btn-sm" onclick="FilesModule.loadFiles(FilesModule.currentPage)">🔄 Refresh</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Filename</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="files-full-table-body">
+                <!-- Files loaded by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="files-pagination" class="pagination-container">
+            <span id="files-page-info">Page 1 of 1</span>
+            <div class="pagination-controls">
+              <button id="btn-files-prev" class="btn btn-secondary btn-sm" disabled>⬅️ Previous</button>
+              <button id="btn-files-next" class="btn btn-secondary btn-sm" disabled>Next ➡️</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Search View -->
+      <section id="view-search" class="view-section">
+        <div class="content-header">
+          <div>
+            <h2 class="page-title">Search Backups</h2>
+            <p class="page-subtitle">Locate files quickly by filename, message caption, or MIME type</p>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <form onsubmit="event.preventDefault(); SearchModule.performSearch(1);" style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <input type="text" id="search-input-main" class="input-field" placeholder="Search by name, extension, caption..." style="flex: 1; padding: 12px 16px; font-size: 15px;">
+            <button type="submit" class="btn btn-blue" style="padding: 12px 24px;">🔍 Search</button>
+          </form>
+
+          <div id="search-results-panel" style="display: none;">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Filename</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="search-table-body"></tbody>
+              </table>
+            </div>
+
+            <div id="search-empty-state" class="empty-state" style="display: none;">
+              <div class="empty-icon">🔍</div>
+              <h4 class="empty-title">No matching files found</h4>
+              <p class="empty-desc">Try checking for typos or searching for a broader keyword.</p>
+            </div>
+
+            <div class="pagination-container">
+              <span id="search-page-info">Page 1 of 1</span>
+              <div class="pagination-controls">
+                <button id="btn-search-prev" class="btn btn-secondary btn-sm" disabled>⬅️ Previous</button>
+                <button id="btn-search-next" class="btn btn-secondary btn-sm" disabled>Next ➡️</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Folders View -->
+      <section id="view-folders" class="view-section">
+        <div class="content-header">
+          <div>
+            <h2 class="page-title">Folder Organization</h2>
+            <p class="page-subtitle">Organize your files into categorized folders</p>
+          </div>
+          <button class="btn btn-primary" onclick="FoldersModule.promptCreateFolder()">➕ New Folder</button>
+        </div>
+
+        <div id="folders-grid" class="stats-grid">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div id="folders-empty-state" class="empty-state card-panel" style="display: none;">
+          <div class="empty-icon">📂</div>
+          <h4 class="empty-title">No folders yet</h4>
+          <p class="empty-desc">Create your first folder to organize and group your backup files.</p>
+          <button class="btn btn-primary btn-sm" onclick="FoldersModule.promptCreateFolder()">Create Folder</button>
+        </div>
+      </section>
+
+      <!-- 5. Tags View -->
+      <section id="view-tags" class="view-section">
+        <div class="content-header">
+          <div>
+            <h2 class="page-title">Tag Classification</h2>
+            <p class="page-subtitle">Label and filter your backups with custom tags</p>
+          </div>
+          <button class="btn btn-primary" onclick="TagsModule.promptCreateTag()">➕ New Tag</button>
+        </div>
+
+        <div id="tags-list-container" class="stats-grid">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div id="tags-empty-state" class="empty-state card-panel" style="display: none;">
+          <div class="empty-icon">🏷</div>
+          <h4 class="empty-title">No tags yet</h4>
+          <p class="empty-desc">Create tags to classify your backup documents and media.</p>
+          <button class="btn btn-primary btn-sm" onclick="TagsModule.promptCreateTag()">Create Tag</button>
+        </div>
+
+        <!-- Tagged Files Table Panel -->
+        <div id="tagged-files-panel" class="card-panel" style="display: none; margin-top: 24px;">
+          <h3 id="tagged-files-title" class="panel-title" style="margin-bottom: 16px;">Tagged Files</h3>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Filename</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tagged-files-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Statistics View -->
+      <section id="view-stats" class="view-section">
+        <div class="content-header">
+          <div>
+            <h2 class="page-title">Storage Statistics & Vault Health</h2>
+            <p class="page-subtitle">Detailed breakdown of total consumption and processing tasks</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="StatsModule.loadStats()">🔄 Refresh</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-blue">📁</div>
+            <div class="stat-info">
+              <span class="stat-label">Total Files</span>
+              <span id="sv-total-files" class="stat-value">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-purple">💾</div>
+            <div class="stat-info">
+              <span class="stat-label">Total Storage</span>
+              <span id="sv-total-size" class="stat-value">0 B</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-green">✅</div>
+            <div class="stat-info">
+              <span class="stat-label">Completed Backups</span>
+              <span id="sv-completed" class="stat-value">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-yellow">⚙️</div>
+            <div class="stat-info">
+              <span class="stat-label">Active Processing</span>
+              <span id="sv-processing" class="stat-value">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-yellow">⏳</div>
+            <div class="stat-info">
+              <span class="stat-label">Pending Queue</span>
+              <span id="sv-pending" class="stat-value">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper stat-icon-red">⚠️</div>
+            <div class="stat-info">
+              <span class="stat-label">Failed Tasks</span>
+              <span id="sv-failed" class="stat-value">0</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <!-- File Details Modal -->
+  <div id="modal-file-details" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">📄 Backup Details</h3>
+        <button class="modal-close" onclick="closeModal('modal-file-details')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 16px; font-weight: 700;" id="fd-filename">filename.ext</div>
+        <div style="display: grid; grid-template-columns: 120px 1fr; gap: 8px; font-size: 14px; margin-top: 8px;">
+          <span style="color: var(--text-secondary);">Size:</span>
+          <span id="fd-size" style="font-weight: 600;">—</span>
+          <span style="color: var(--text-secondary);">MIME Type:</span>
+          <span id="fd-mime">—</span>
+          <span style="color: var(--text-secondary);">Media Category:</span>
+          <span id="fd-type">—</span>
+          <span style="color: var(--text-secondary);">Status:</span>
+          <span id="fd-status">—</span>
+          <span style="color: var(--text-secondary);">Folder:</span>
+          <span id="fd-folder">—</span>
+          <span style="color: var(--text-secondary);">Tags:</span>
+          <span id="fd-tags">—</span>
+          <span style="color: var(--text-secondary);">Backup Date:</span>
+          <span id="fd-date">—</span>
+          <span style="color: var(--text-secondary);">SHA-256:</span>
+          <span id="fd-sha256" style="font-family: monospace; font-size: 12px;">—</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-file-details')">Close</button>
+        <a id="fd-btn-download" href="#" class="btn btn-blue btn-sm">⬇ Download File</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="modal-delete-confirm" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">⚠️ Confirm Deletion</h3>
+        <button class="modal-close" onclick="closeModal('modal-delete-confirm')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <b id="delete-modal-filename">this file</b>?</p>
+        <p style="font-size: 13px; color: var(--text-secondary);">This will remove the file from storage and soft-delete the backup record.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-delete-confirm')">Cancel</button>
+        <button id="btn-confirm-delete" class="btn btn-danger btn-sm">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Move File Modal -->
+  <div id="modal-move-file" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">📁 Move to Folder</h3>
+        <button class="modal-close" onclick="closeModal('modal-move-file')">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label" for="move-folder-select">Select Destination Folder</label>
+        <select id="move-folder-select" class="select-field" style="width: 100%;">
+          <option value="">📁 Root (No folder)</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-move-file')">Cancel</button>
+        <button id="btn-confirm-move" class="btn btn-primary btn-sm">Move File</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Folder Modal -->
+  <div id="modal-new-folder" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">➕ Create New Folder</h3>
+        <button class="modal-close" onclick="closeModal('modal-new-folder')">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label" for="new-folder-name-input">Folder Name</label>
+        <input type="text" id="new-folder-name-input" class="input-field" placeholder="e.g. Documents, Invoices" maxlength="64">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-new-folder')">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="FoldersModule.confirmCreateFolder()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Tag Modal -->
+  <div id="modal-new-tag" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">➕ Create New Tag</h3>
+        <button class="modal-close" onclick="closeModal('modal-new-tag')">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label" for="new-tag-name-input">Tag Name</label>
+        <input type="text" id="new-tag-name-input" class="input-field" placeholder="e.g. receipts, work, photos" maxlength="32">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-new-tag')">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="TagsModule.confirmCreateTag()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/stats.js"></script>
+  <script src="/static/js/files.js"></script>
+  <script src="/static/js/search.js"></script>
+  <script src="/static/js/folders.js"></script>
+  <script src="/static/js/tags.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

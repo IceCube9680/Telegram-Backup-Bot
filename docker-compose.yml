@@ -25,17 +25,23 @@ services:
     container_name: telegram_backup_api
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     environment:
-      - ENVIRONMENT=development
-      - DEBUG=true
-      - LOG_LEVEL=INFO
-      - MONGODB_URI=mongodb://mongodb:27017
-      - MONGODB_DATABASE=telegram_backup
-      - STORAGE_TYPE=local
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-telegram_backup}
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
       - STORAGE_PATH=/app/storage
+      - BOT_TOKEN=${BOT_TOKEN}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - WEB_SESSION_SECRET=${WEB_SESSION_SECRET}
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - API_PORT=8000
     volumes:
-      - app_storage:/app/storage
+      - ./storage:/app/storage
     depends_on:
       mongodb:
         condition: service_healthy
@@ -56,16 +62,48 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "app.bot.bot"]
     environment:
-      - ENVIRONMENT=development
-      - LOG_LEVEL=INFO
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - BOT_TOKEN=${BOT_TOKEN:-}
-      - MONGODB_URI=mongodb://mongodb:27017
-      - MONGODB_DATABASE=telegram_backup
-      - STORAGE_TYPE=local
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-telegram_backup}
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
       - STORAGE_PATH=/app/storage
     volumes:
-      - app_storage:/app/storage
+      - ./storage:/app/storage
+    healthcheck:
+      disable: true
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backup_net
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram_backup_worker
+    restart: unless-stopped
+    command: ["python", "-m", "app.workers.worker"]
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - BOT_TOKEN=${BOT_TOKEN:-}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-telegram_backup}
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
+      - STORAGE_PATH=/app/storage
+      - WORKER_CONCURRENCY=2
+      - WORKER_POLL_INTERVAL=2
+      - WORKER_LOCK_TIMEOUT=300
+      - WORKER_MAX_ATTEMPTS=3
+    volumes:
+      - ./storage:/app/storage
+    healthcheck:
+      disable: true
     depends_on:
       mongodb:
         condition: service_healthy
@@ -74,8 +112,6 @@ services:
 
 volumes:
   mongo_data:
-    driver: local
-  app_storage:
     driver: local
 
 networks:

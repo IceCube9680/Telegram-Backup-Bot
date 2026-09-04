@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from app.api.schemas.health import HealthResponse, LivenessResponse, ReadinessResponse
 from app.core.config import get_settings
 from app.database.mongo import mongo_manager
+from app.services.disk_service import get_disk_health
 
 router = APIRouter(tags=["Health"])
 
@@ -60,40 +61,29 @@ async def readiness_probe() -> JSONResponse:
     "/health",
     response_model=HealthResponse,
     summary="Combined Application Health Check",
-    description="Returns combined application health and MongoDB connectivity status.",
+    description="Returns combined application health, MongoDB connectivity, and disk storage status.",
 )
 async def health_check() -> JSONResponse:
-    """Combined health check: returns overall health and database connectivity."""
+    """Combined health check: returns overall health, database connectivity, and storage disk space."""
     settings = get_settings()
     db_connected = await mongo_manager.ping()
+    disk_health = await get_disk_health(settings)
 
-    if db_connected:
-        response_data = HealthResponse(
-            status="healthy",
-            app=settings.APP_NAME,
-            version=settings.APP_VERSION,
-            database="connected",
-            details={
-                "environment": settings.ENVIRONMENT,
-                "storage_type": settings.STORAGE_TYPE,
-            },
-        )
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content=response_data.model_dump(mode="json"),
-        )
-    else:
-        response_data = HealthResponse(
-            status="degraded",
-            app=settings.APP_NAME,
-            version=settings.APP_VERSION,
-            database="disconnected",
-            details={
-                "environment": settings.ENVIRONMENT,
-                "error": "MongoDB is disconnected or unreachable",
-            },
-        )
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content=response_data.model_dump(mode="json"),
-        )
+    overall_status = "healthy" if db_connected and disk_health.status != "critical" else "degraded"
+    status_code = status.HTTP_200_OK if db_connected else status.HTTP_503_SERVICE_UNAVAILABLE
+
+    response_data = HealthResponse(
+        status=overall_status,
+        app=settings.APP_NAME,
+        version=settings.APP_VERSION,
+        database="connected" if db_connected else "disconnected",
+        details={
+            "environment": settings.ENVIRONMENT,
+            "storage_type": settings.STORAGE_TYPE,
+            "disk": disk_health.model_dump(),
+        },
+    )
+    return JSONResponse(
+        status_code=status_code,
+        content=response_data.model_dump(mode="json"),
+    )

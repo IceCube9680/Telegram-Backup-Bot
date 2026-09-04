@@ -80,6 +80,13 @@ class StorageService(ABC):
         pass
 
     @abstractmethod
+    async def store_from_file(
+        self, source_path: Union[str, Path], storage_key: str, move: bool = True
+    ) -> str:
+        """Atomically commit a physical file into storage_key."""
+        pass
+
+    @abstractmethod
     async def exists(self, storage_key: str) -> bool:
         """Check if storage key exists."""
         pass
@@ -265,6 +272,42 @@ class LocalStorageService(StorageService):
             logger.error(f"Failed to upload file to {storage_key}: {e}")
             raise StorageError(
                 message=f"Failed to write file to storage: {str(e)}",
+                details={"storage_key": storage_key},
+            ) from e
+
+    async def store_from_file(
+        self,
+        source_path: Union[str, Path],
+        storage_key: str,
+        move: bool = True,
+    ) -> str:
+        """Atomically commit a physical file into target storage key (via os.replace or copy)."""
+        target_path = self.validate_storage_key(storage_key)
+        src = Path(source_path).resolve()
+
+        if not src.exists() or not src.is_file():
+            raise StorageNotFoundError(
+                message=f"Source file not found for storage: '{src}'",
+                details={"source_path": str(src), "storage_key": storage_key},
+            )
+
+        try:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            if move:
+                # Atomic zero-copy move on same filesystem
+                await asyncio.to_thread(os.replace, src, target_path)
+            else:
+                await asyncio.to_thread(shutil.copy2, src, target_path)
+            logger.debug(f"Successfully stored file from {src} to {storage_key} (move={move})")
+            return storage_key
+        except PermissionError as e:
+            raise StoragePermissionError(
+                message=f"Permission denied storing file into {storage_key}: {e}",
+                details={"storage_key": storage_key},
+            ) from e
+        except Exception as e:
+            raise StorageError(
+                message=f"Failed to commit file to storage: {e}",
                 details={"storage_key": storage_key},
             ) from e
 

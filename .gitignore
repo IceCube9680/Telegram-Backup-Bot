@@ -29,9 +29,16 @@ ENV/
 .env
 .env.local
 
-# Storage
+# Storage & Backups
 /storage/*
 !/storage/.gitkeep
+backups/
+secrets/
+*.session
+*.session-journal
+*.part
+*.archive.gz
+*.tar.gz
 
 # IDEs & OS
 .idea/
@@ -41,6 +48,8 @@ ENV/
 .DS_Store
 
 # Testing & Coverage
+tests/
+pytest.ini
 .pytest_cache/
 .coverage
 htmlcov/

@@ -90,6 +90,7 @@ class BackupItemRepository(BaseRepository):
         file_size: int,
         mime_type: Optional[str] = None,
         original_filename: Optional[str] = None,
+        transfer_method: Optional[str] = None,
         status: ItemStatus = ItemStatus.COMPLETED,
     ) -> Optional[Dict[str, Any]]:
         """Update file storage details after worker completion with user ownership check."""
@@ -106,6 +107,8 @@ class BackupItemRepository(BaseRepository):
             update_fields["mime_type"] = mime_type
         if original_filename:
             update_fields["original_filename"] = original_filename
+        if transfer_method:
+            update_fields["transfer_method"] = transfer_method
 
         doc = await self.collection.find_one_and_update(
             {"_id": obj_id, "user_id": user_id},

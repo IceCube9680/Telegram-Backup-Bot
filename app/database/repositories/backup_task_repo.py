@@ -184,6 +184,57 @@ class BackupTaskRepository(BaseRepository):
         )
         return self.format_doc(doc)
 
+    async def renew_lock(
+        self,
+        task_id: str,
+        worker_id: str,
+    ) -> bool:
+        """Atomically refresh locked_at timestamp for an actively executing task claimed by worker."""
+        obj_id = self.validate_object_id(task_id, "task_id")
+        now = datetime.now(timezone.utc)
+        result = await self.collection.update_one(
+            {
+                "_id": obj_id,
+                "status": TaskStatus.PROCESSING.value,
+                "worker_id": worker_id,
+            },
+            {
+                "$set": {
+                    "locked_at": now,
+                    "updated_at": now,
+                }
+            },
+        )
+        return result.modified_count > 0
+
+    async def release_task_for_retry(
+        self,
+        task_id: str,
+        error_message: Optional[str] = None,
+        worker_id: Optional[str] = None,
+    ) -> bool:
+        """Release a task back to pending state for subsequent retry attempts."""
+        obj_id = self.validate_object_id(task_id, "task_id")
+        now = datetime.now(timezone.utc)
+        query: Dict[str, Any] = {"_id": obj_id, "status": TaskStatus.PROCESSING.value}
+        if worker_id:
+            query["worker_id"] = worker_id
+
+        update_set: Dict[str, Any] = {
+            "status": TaskStatus.PENDING.value,
+            "worker_id": None,
+            "locked_at": None,
+            "updated_at": now,
+        }
+        if error_message:
+            update_set["error_message"] = error_message
+
+        result = await self.collection.update_one(
+            query,
+            {"$set": update_set},
+        )
+        return result.modified_count > 0
+
     async def get_by_id(
         self,
         task_id: str,

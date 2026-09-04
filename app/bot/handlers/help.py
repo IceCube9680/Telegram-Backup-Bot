@@ -23,11 +23,17 @@ async def cmd_help(message: Message) -> None:
         "• <b>Animations & Video Notes</b>: GIFs and round video notes\n\n"
         "<b>⚡ Available Commands:</b>\n"
         "• /backup — Instructions on backing up files\n"
-        "• /files — View your recent backed-up files\n"
-        "• /stats — View your current storage quota & count\n"
-        "• /settings — View backup preferences\n"
+        "• /files — Browse backed-up files, details, delete, & retry\n"
+        "• /search &lt;query&gt; — Search files by name or keyword\n"
+        "• /stats — View storage usage & file status breakdown\n"
+        "• /folders — List and navigate folder hierarchies\n"
+        "• /newfolder &lt;name&gt; — Create a new folder\n"
+        "• /tags — List and browse files by tags\n"
+        "• /newtag &lt;name&gt; — Create a new tag\n"
+        "• /login — Generate web dashboard login code\n"
+        "• /settings — View backup preferences & limits\n"
         "• /help — Show this help manual\n\n"
-        "💡 <i>Tip: You don't need to type any command to back up. Just forward or send files directly!</i>"
+        "💡 <i>Tip: You don't need to type any command to back up. Just send or forward any file directly!</i>"
     )
     await message.answer(
         text=help_text,

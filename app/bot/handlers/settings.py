@@ -29,7 +29,7 @@ async def cmd_settings(
     auto_backup_status = "Enabled ✅" if settings_doc.get("auto_backup", True) else "Disabled ❌"
     dedup_status = "Enabled ✅" if settings_doc.get("duplicate_detection", True) else "Disabled ❌"
     notif_status = "Enabled ✅" if settings_doc.get("notifications_enabled", True) else "Disabled ❌"
-    max_size_formatted = format_bytes(settings_doc.get("max_file_size", 52428800))
+    max_size_formatted = format_bytes(settings_doc.get("max_file_size", 4294967296))
 
     settings_text = (
         "⚙️ <b>Your Backup Settings & Preferences</b>\n\n"

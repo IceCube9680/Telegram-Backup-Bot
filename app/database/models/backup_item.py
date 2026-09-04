@@ -35,6 +35,7 @@ class BackupItemModel(BaseModel):
 
     user_id: int = Field(..., description="Telegram user ID owning this item")
     telegram_message_id: int = Field(..., description="Original Telegram message ID")
+    chat_id: Optional[int] = Field(default=None, description="Original Telegram chat ID")
     telegram_file_id: Optional[str] = Field(default=None, description="Telegram file ID for download")
     telegram_file_unique_id: Optional[str] = Field(default=None, description="Telegram unique file ID")
     media_type: MediaType = Field(default=MediaType.DOCUMENT, description="Categorized media type")
@@ -45,6 +46,9 @@ class BackupItemModel(BaseModel):
     caption: Optional[str] = Field(default=None, description="Message caption or text body")
     storage_provider: str = Field(default="local", description="Storage backend ('local' or 's3')")
     storage_key: Optional[str] = Field(default=None, description="Generated storage path/key")
+    transfer_method: str = Field(
+        default="bot_api", description="Transfer provider used ('bot_api' or 'mtproto')"
+    )
     folder_id: Optional[str] = Field(default=None, description="Parent folder ID if organized")
     status: ItemStatus = Field(default=ItemStatus.PENDING, description="Item processing status")
     deleted_at: Optional[datetime] = Field(

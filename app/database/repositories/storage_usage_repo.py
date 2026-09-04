@@ -129,3 +129,12 @@ class StorageUsageRepository(BaseRepository):
             return_document=ReturnDocument.AFTER,
         )
         return self.format_doc(doc)  # type: ignore
+
+    async def set_usage(
+        self,
+        user_id: int,
+        file_count: int,
+        total_bytes: int,
+    ) -> Dict[str, Any]:
+        """Set usage counters (alias for reset_usage)."""
+        return await self.reset_usage(user_id=user_id, total_files=file_count, total_bytes=total_bytes)

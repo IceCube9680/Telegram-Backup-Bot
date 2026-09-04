@@ -15,6 +15,10 @@ def get_main_keyboard() -> ReplyKeyboardMarkup:
             KeyboardButton(text="📊 Stats"),
         ],
         [
+            KeyboardButton(text="📂 Folders"),
+            KeyboardButton(text="🏷 Tags"),
+        ],
+        [
             KeyboardButton(text="⚙️ Settings"),
             KeyboardButton(text="❓ Help"),
         ],
