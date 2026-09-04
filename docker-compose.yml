@@ -1,0 +1,59 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: telegram_backup_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=telegram_backup
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - backup_net
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval \"db.adminCommand('ping')\" --quiet || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram_backup_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=INFO
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DATABASE=telegram_backup
+      - STORAGE_TYPE=local
+      - STORAGE_PATH=/app/storage
+    volumes:
+      - app_storage:/app/storage
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backup_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mongo_data:
+    driver: local
+  app_storage:
+    driver: local
+
+networks:
+  backup_net:
+    driver: bridge
