@@ -71,3 +71,40 @@ class StorageError(AppException):
         details: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(message=message, status_code=500, details=details)
+
+
+class StorageNotFoundError(StorageError):
+    """Raised when a requested file or storage key does not exist."""
+
+    def __init__(
+        self,
+        message: str = "Storage object not found",
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(message=message, details=details)
+        self.status_code = 404
+
+
+class StorageValidationError(StorageError):
+    """Raised when a storage key contains illegal characters, path traversal, or format errors."""
+
+    def __init__(
+        self,
+        message: str = "Invalid storage key",
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(message=message, details=details)
+        self.status_code = 400
+
+
+class StoragePermissionError(StorageError):
+    """Raised when filesystem permission is denied."""
+
+    def __init__(
+        self,
+        message: str = "Storage permission denied",
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(message=message, details=details)
+        self.status_code = 500
+
