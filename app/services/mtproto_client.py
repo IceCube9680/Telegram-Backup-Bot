@@ -43,22 +43,22 @@ class TelethonClientManager:
         self._connected = False
 
     def _ensure_session_dir_permissions(self, session_path: Path) -> None:
-        """Ensure session directory exists and has restricted filesystem permissions (0700 / 0600)."""
+        """Ensure session directory exists and has appropriate filesystem permissions."""
         try:
             session_dir = session_path.parent
             session_dir.mkdir(parents=True, exist_ok=True)
             try:
-                os.chmod(session_dir, 0o700)
+                os.chmod(session_dir, 0o777)
             except Exception:
                 pass
 
             if session_path.exists():
                 try:
-                    os.chmod(session_path, 0o600)
+                    os.chmod(session_path, 0o666)
                 except Exception:
                     pass
         except Exception as e:
-            logger.warning(f"Failed to enforce restricted permissions on session path {session_path}: {e}")
+            logger.warning(f"Failed to enforce permissions on session path {session_path}: {e}")
 
     async def initialize(self) -> Optional[TelegramClient]:
         """Initialize and connect Telethon MTProto client if enabled."""
@@ -80,12 +80,16 @@ class TelethonClientManager:
                     details={"env_key": "MT_PROTO_API_ID"},
                 )
 
-            session_file = Path(session_str_or_path).resolve()
+            session_file = Path(session_str_or_path)
             self._ensure_session_dir_permissions(session_file)
+
+            session_target = str(session_file)
+            if session_target.endswith(".session"):
+                session_target = session_target[:-8]
 
             logger.info("Initializing dedicated MTProto TelegramClient...")
             self.client = TelegramClient(
-                session=str(session_file),
+                session=session_target,
                 api_id=api_id,
                 api_hash=api_hash,
                 flood_sleep_threshold=0,  # Do not sleep automatically in library; let worker handle FLOOD_WAIT

@@ -15,10 +15,10 @@ class UserSettingsModel(BaseModel):
     )
     default_folder_id: Optional[str] = Field(default=None, description="Default target folder ID")
     max_file_size: int = Field(
-        default=52428800,
+        default=4294967296,
         ge=1024,
         le=4294967296,
-        description="Maximum allowed file size in bytes (default 50 MB = 52,428,800 bytes, platform max 4 GiB = 4,294,967,296 bytes)",
+        description="Maximum allowed file size in bytes (default 4 GiB = 4,294,967,296 bytes)",
     )
     notifications_enabled: bool = Field(
         default=True, description="Send Telegram notifications on backup completion/failure"
