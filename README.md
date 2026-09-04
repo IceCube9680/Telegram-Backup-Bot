@@ -12,10 +12,10 @@ Telegram User ──────> aiogram 3.x Bot ───> Backup Service ─�
 Web Dashboard <────── FastAPI REST API <── Storage Service <── Worker Polling Loop
 ```
 
-- **Database**: MongoDB (Primary store & resilient task queue state)
-- **Framework**: FastAPI (Async REST API & Web Dashboard)
+- **Database**: MongoDB (Primary store & resilient task queue state — No Redis required)
+- **Async Driver**: Modern PyMongo Asynchronous API (`pymongo.AsyncMongoClient`)
+- **API Framework**: FastAPI (Async REST API & Web Dashboard)
 - **Telegram Bot**: aiogram 3.x
-- **Async Driver**: Motor (PyMongo async driver)
 - **Containerization**: Docker & Docker Compose
 
 ---
@@ -63,13 +63,24 @@ telegram-backup-bot/
 │   ├── integration/
 │   └── api/
 ├── storage/                     # Local storage destination
-├── scripts/                     # Operational & migration scripts
+├── scripts/                     # Operational & verification scripts
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
 ├── requirements.txt
 └── README.md
 ```
+
+---
+
+## Health Check & Probe Endpoints
+
+| Endpoint | Probe Type | Purpose | Healthy Status | Disconnected / Degraded |
+|---|---|---|---|---|
+| `GET /health/live` | Liveness | Verifies application process is running | HTTP 200 (`{"status": "alive"}`) | — |
+| `GET /health/ready` | Readiness | Verifies MongoDB connectivity | HTTP 200 (`{"status": "ready"}`) | HTTP 503 (`{"status": "not_ready"}`) |
+| `GET /health` | Combined | Overall application + database status | HTTP 200 (`{"status": "healthy"}`) | HTTP 503 (`{"status": "degraded"}`) |
+| `GET /api/health` | Alias | API prefixed status check | HTTP 200 (`{"status": "healthy"}`) | HTTP 503 (`{"status": "degraded"}`) |
 
 ---
 
@@ -105,6 +116,11 @@ docker compose up -d
 
 # Check service logs
 docker compose logs -f api
+
+# Verify health probes
+curl http://localhost:8000/health/live
+curl http://localhost:8000/health/ready
+curl http://localhost:8000/health
 ```
 
 ### 4. Running Locally
@@ -116,27 +132,20 @@ python3 -m app.main
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Access:
-- Health Check: [http://localhost:8000/health](http://localhost:8000/health)
-- API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
-
 ---
 
 ## Running Tests
 
 ```bash
-# Run all tests
+# Run full test suite
 pytest -v
-
-# Run with coverage
-pytest --cov=app tests/
 ```
 
 ---
 
 ## Development Phases Roadmap
 
-- [x] **Phase 1: Foundation** (Project structure, Async MongoDB manager, Config, Logging, Health Check, Docker, Tests)
+- [x] **Phase 1: Foundation** (Project structure, Async PyMongo connection manager, Config, Logging, Liveness/Readiness Health Checks, Docker, Tests)
 - [ ] **Phase 2: MongoDB Models & Repositories**
 - [ ] **Phase 3: Storage Layer** (StorageService & LocalStorageService)
 - [ ] **Phase 4: Telegram Bot** (aiogram 3.x commands & media handlers)
