@@ -24,7 +24,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Connect to MongoDB on startup (allow retry/fallback if starting up before DB in dev/tests)
     try:
-        await mongo_manager.connect()
+        db = await mongo_manager.connect()
+        from app.database.indexes import ensure_indexes
+        await ensure_indexes(db)
     except Exception as e:
         logger.warning(
             f"Could not connect to MongoDB on startup ({e}). Will retry on health check / requests."
