@@ -21,6 +21,11 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
 
     # 2. backup_items collection indexes (user-scoped)
     backup_item_indexes = [
+        IndexModel(
+            [("user_id", ASCENDING), ("telegram_message_id", ASCENDING)],
+            unique=True,
+            name="idx_items_user_message_unique",
+        ),
         IndexModel([("user_id", ASCENDING), ("created_at", DESCENDING)], name="idx_items_user_created"),
         IndexModel([("user_id", ASCENDING), ("sha256", ASCENDING)], name="idx_items_user_sha256"),
         IndexModel([("user_id", ASCENDING), ("original_filename", ASCENDING)], name="idx_items_user_filename"),

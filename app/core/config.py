@@ -27,7 +27,14 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
 
     # Telegram Bot
+    TELEGRAM_BOT_TOKEN: Optional[str] = None
     BOT_TOKEN: str = ""
+    TELEGRAM_MODE: str = "polling"
+
+    @property
+    def telegram_token(self) -> str:
+        """Return the active Telegram Bot Token from TELEGRAM_BOT_TOKEN or BOT_TOKEN."""
+        return (self.TELEGRAM_BOT_TOKEN or self.BOT_TOKEN or "").strip()
 
     # MongoDB Connection
     MONGODB_URI: str = "mongodb://localhost:27017"

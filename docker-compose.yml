@@ -48,6 +48,30 @@ services:
       retries: 3
       start_period: 10s
 
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram_backup_bot
+    restart: unless-stopped
+    command: ["python", "-m", "app.bot.bot"]
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - BOT_TOKEN=${BOT_TOKEN:-}
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DATABASE=telegram_backup
+      - STORAGE_TYPE=local
+      - STORAGE_PATH=/app/storage
+    volumes:
+      - app_storage:/app/storage
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backup_net
+
 volumes:
   mongo_data:
     driver: local

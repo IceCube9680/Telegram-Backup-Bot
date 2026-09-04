@@ -33,6 +33,19 @@ class BackupItemRepository(BaseRepository):
             del doc["_id"]
         return doc
 
+    async def get_by_message_id(
+        self,
+        user_id: int,
+        telegram_message_id: int,
+        include_deleted: bool = False,
+    ) -> Optional[Dict[str, Any]]:
+        """Find an item by Telegram message ID scoped to the user (for update idempotency)."""
+        query: Dict[str, Any] = {"user_id": user_id, "telegram_message_id": telegram_message_id}
+        if not include_deleted:
+            query["deleted_at"] = None
+        doc = await self.collection.find_one(query)
+        return self.format_doc(doc)
+
     async def get_by_id(
         self,
         user_id: int,
