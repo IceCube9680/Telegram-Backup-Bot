@@ -293,11 +293,26 @@ class LocalStorageService(StorageService):
 
         try:
             target_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                os.chmod(target_path.parent, 0o777)
+            except Exception:
+                pass
+
             if move:
-                # Atomic zero-copy move on same filesystem
-                await asyncio.to_thread(os.replace, src, target_path)
+                # Try atomic zero-copy move on same filesystem, fallback to copy2+unlink if cross-permission
+                try:
+                    await asyncio.to_thread(os.replace, src, target_path)
+                except (PermissionError, OSError):
+                    await asyncio.to_thread(shutil.copy2, src, target_path)
+                    await asyncio.to_thread(src.unlink, missing_ok=True)
             else:
                 await asyncio.to_thread(shutil.copy2, src, target_path)
+
+            try:
+                os.chmod(target_path, 0o666)
+            except Exception:
+                pass
+
             logger.debug(f"Successfully stored file from {src} to {storage_key} (move={move})")
             return storage_key
         except PermissionError as e:

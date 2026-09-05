@@ -12,8 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
+# Create non-root user (matching standard host UID 1000 for volume mount write permissions)
+RUN (groupadd -g 1000 appuser 2>/dev/null || groupadd appuser) && \
+    (useradd -u 1000 -g appuser -d /app -s /sbin/nologin appuser 2>/dev/null || useradd -g appuser -d /app -s /sbin/nologin appuser)
 
 # Install python dependencies
 COPY requirements.txt .
@@ -22,8 +23,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application source code
 COPY . .
 
-# Ensure storage directory exists and set permissions
-RUN mkdir -p /app/storage && chown -R appuser:appuser /app
+# Ensure storage, secrets, and temp download directories exist with proper permissions
+RUN mkdir -p /app/storage/.tmp-downloads /app/secrets && \
+    chmod -R 777 /app/storage /app/secrets && \
+    chown -R appuser:appuser /app
 
 USER appuser
 

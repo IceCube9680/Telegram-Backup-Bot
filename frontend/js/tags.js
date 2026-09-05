@@ -25,10 +25,10 @@ const TagsModule = {
 
       if (listEl) {
         listEl.innerHTML = tags.map(t => `
-          <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="TagsModule.openTagFiles('${t.id}', '${this.escapeHtml(t.name)}')">
-              <span style="font-size: 20px;">🏷</span>
-              <span style="font-weight: 600; font-size: 15px;">${this.escapeHtml(t.name)}</span>
+          <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 0; flex: 1;" onclick="TagsModule.openTagFiles('${t.id}', '${this.escapeHtml(t.name)}')">
+              <span style="font-size: 20px; flex-shrink: 0;">🏷</span>
+              <span style="font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.escapeHtml(t.name)}</span>
             </div>
             <div>
               <button class="btn btn-secondary btn-sm" onclick="TagsModule.deleteTag('${t.id}', '${this.escapeHtml(t.name)}')">🗑</button>
@@ -48,10 +48,12 @@ const TagsModule = {
     const panel = document.getElementById("tagged-files-panel");
     const titleEl = document.getElementById("tagged-files-title");
     const tbody = document.getElementById("tagged-files-tbody");
+    const mobileCards = document.getElementById("tagged-files-mobile-cards");
 
     if (panel) panel.style.display = "block";
     if (titleEl) titleEl.textContent = `🏷 Files tagged with "${tagName}"`;
     if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 16px;">Loading tagged files...</td></tr>`;
+    if (mobileCards) mobileCards.innerHTML = `<div style="text-align: center; padding: 16px;">Loading tagged files...</div>`;
 
     try {
       const res = await window.api.get(`/tags/${tagId}/files`);
@@ -59,6 +61,7 @@ const TagsModule = {
 
       if (items.length === 0) {
         if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 16px; color: var(--text-secondary);">No files attached to this tag.</td></tr>`;
+        if (mobileCards) mobileCards.innerHTML = `<div style="text-align: center; padding: 16px; color: var(--text-secondary);">No files attached to this tag.</div>`;
         return;
       }
 
@@ -76,8 +79,13 @@ const TagsModule = {
           </tr>
         `).join("");
       }
+
+      if (mobileCards) {
+        mobileCards.innerHTML = window.FilesModule.renderFileCardsHtml(items);
+      }
     } catch (err) {
       if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="color: var(--accent-danger); text-align: center;">${err.message}</td></tr>`;
+      if (mobileCards) mobileCards.innerHTML = `<div style="color: var(--accent-danger); text-align: center;">${err.message}</div>`;
     }
   },
 

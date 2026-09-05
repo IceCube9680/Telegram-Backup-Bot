@@ -75,8 +75,11 @@ async def main() -> None:
     # Secure file permissions (chmod 0600)
     actual_file = Path(f"{session_name}.session")
     if actual_file.exists():
-        os.chmod(actual_file, stat.S_IRUSR | stat.S_IWUSR)
-        print(f"Session file successfully secured with 0600 permissions at: {actual_file}")
+        try:
+            os.chmod(actual_file, stat.S_IRUSR | stat.S_IWUSR)
+            print(f"Session file successfully secured with 0600 permissions at: {actual_file}")
+        except Exception:
+            print(f"Session file created at: {actual_file}")
 
     print("\nNext steps:")
     print("1. Set MT_PROTO_ENABLED=true in your .env configuration.")

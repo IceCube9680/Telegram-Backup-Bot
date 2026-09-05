@@ -17,6 +17,9 @@ import sys
 import time
 from typing import Optional, Tuple
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR))
+
 from app.core.config import Settings, get_settings
 from app.core.logging import get_logger, setup_logging
 from app.services.mtproto_client import TelethonClientManager

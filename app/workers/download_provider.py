@@ -162,7 +162,11 @@ class MtProtoDownloader(TelegramDownloadProvider):
         # 1. Resolve MTProto media reference
         client: TelegramClient = await self.client_manager.get_client()
         media, resolved_size = await self.client_manager.resolve_message_media(
-            chat_id=chat_id, message_id=message_id
+            chat_id=chat_id,
+            message_id=message_id,
+            expected_size=source.expected_size,
+            media_type=source.media_type,
+            file_unique_id=source.file_unique_id,
         )
         target_size = resolved_size or source.expected_size or 0
 

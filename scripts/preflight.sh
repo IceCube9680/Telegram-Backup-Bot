@@ -154,7 +154,7 @@ fi
 # ------------------------------------------------------------------------------
 echo -e "\n4. Storage & Filesystem Health:"
 
-for dir in "$STORAGE_DIR" "$MONGO_BACKUP_DIR" "$STORAGE_BACKUP_DIR"; do
+for dir in "$STORAGE_DIR" "$STORAGE_DIR/.tmp-downloads" "./secrets" "$MONGO_BACKUP_DIR" "$STORAGE_BACKUP_DIR"; do
     if mkdir -p "$dir" 2>/dev/null; then
         # Test write and delete
         TEST_FILE="${dir}/.preflight_write_test_$$"

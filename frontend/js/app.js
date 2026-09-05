@@ -35,9 +35,18 @@ function closeModal(modalId) {
 // Tab Navigation
 function navigateToTab(tabName) {
   const navItems = document.querySelectorAll(".nav-item");
+  const mobileNavItems = document.querySelectorAll(".mobile-nav-item");
   const viewSections = document.querySelectorAll(".view-section");
 
   navItems.forEach(item => {
+    if (item.dataset.tab === tabName) {
+      item.classList.add("active");
+    } else {
+      item.classList.remove("active");
+    }
+  });
+
+  mobileNavItems.forEach(item => {
     if (item.dataset.tab === tabName) {
       item.classList.add("active");
     } else {
@@ -53,9 +62,15 @@ function navigateToTab(tabName) {
     }
   });
 
+  // Scroll to top of content on tab switch
+  window.scrollTo({ top: 0, behavior: "instant" });
+  const mainContent = document.querySelector(".main-content");
+  if (mainContent) mainContent.scrollTop = 0;
+
   // Trigger relevant module loaders
   if (tabName === "dashboard") {
     window.StatsModule.loadStats();
+    window.FilesModule.loadRecentFiles();
   } else if (tabName === "files") {
     window.FilesModule.loadFiles(1);
   } else if (tabName === "folders") {
@@ -78,26 +93,37 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 2. Render User Profile
   const avatarEl = document.getElementById("user-avatar-initial");
+  const mobileAvatarEl = document.getElementById("mobile-user-avatar");
   const nameEl = document.getElementById("user-display-name");
   const handleEl = document.getElementById("user-display-handle");
+  const welcomeTitle = document.getElementById("welcome-user-title");
 
+  const firstName = user.first_name || "Ice Cube";
   const displayName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Telegram User";
-  if (avatarEl) avatarEl.textContent = displayName.charAt(0).toUpperCase();
+  const initial = displayName.charAt(0).toUpperCase() || "U";
+
+  if (avatarEl) avatarEl.textContent = initial;
+  if (mobileAvatarEl) mobileAvatarEl.textContent = initial;
   if (nameEl) nameEl.textContent = displayName;
   if (handleEl) handleEl.textContent = user.username ? `@${user.username}` : `ID: ${user.telegram_user_id}`;
+  if (welcomeTitle) welcomeTitle.textContent = `Welcome back, ${firstName}`;
 
-  // 3. Bind Navigation Click Handlers
-  document.querySelectorAll(".nav-item[data-tab]").forEach(btn => {
+  // 3. Bind Navigation Click Handlers (Sidebar + Mobile Bottom Nav)
+  document.querySelectorAll(".nav-item[data-tab], .mobile-nav-item[data-tab]").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       navigateToTab(btn.dataset.tab);
     });
   });
 
-  // 4. Bind Logout Button
+  // 4. Bind Logout Buttons
   const logoutBtn = document.getElementById("btn-logout");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => window.Auth.logout());
+  }
+  const mobileLogoutBtn = document.getElementById("mobile-btn-logout");
+  if (mobileLogoutBtn) {
+    mobileLogoutBtn.addEventListener("click", () => window.Auth.logout());
   }
 
   // 5. Close Modal on Backdrop Click
@@ -122,7 +148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 7. Initial Data Load
   window.StatsModule.loadStats();
-  window.FilesModule.loadFiles(1);
+  window.FilesModule.loadRecentFiles();
 });
 
 // Expose globals

@@ -19,6 +19,7 @@ const SearchModule = {
     this.currentPage = page;
 
     const tableBody = document.getElementById("search-table-body");
+    const mobileCards = document.getElementById("search-mobile-cards");
     const emptyState = document.getElementById("search-empty-state");
     const resultsContainer = document.getElementById("search-results-panel");
     const pageInfo = document.getElementById("search-page-info");
@@ -29,6 +30,9 @@ const SearchModule = {
     if (tableBody) {
       tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-secondary);">Searching for "${this.escapeHtml(query)}"...</td></tr>`;
     }
+    if (mobileCards) {
+      mobileCards.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--text-secondary);">Searching for "${this.escapeHtml(query)}"...</div>`;
+    }
 
     try {
       const result = await window.api.get("/search", {
@@ -37,8 +41,11 @@ const SearchModule = {
         page_size: this.pageSize,
       });
 
-      if (!result.items || result.items.length === 0) {
+      const items = result.items || [];
+
+      if (items.length === 0) {
         if (tableBody) tableBody.innerHTML = "";
+        if (mobileCards) mobileCards.innerHTML = "";
         if (emptyState) emptyState.style.display = "block";
         if (pageInfo) pageInfo.textContent = `No results found for "${query}"`;
         return;
@@ -46,29 +53,12 @@ const SearchModule = {
 
       if (emptyState) emptyState.style.display = "none";
 
-      tableBody.innerHTML = result.items.map(item => {
-        const sizeStr = item.file_size ? window.formatBytes(item.file_size) : "—";
-        const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : "—";
-        const statusBadge = `<span class="badge badge-${item.status}">${item.status}</span>`;
-
-        return `
-          <tr>
-            <td>
-              <div style="font-weight: 500;">
-                <span>📄</span> ${this.escapeHtml(item.original_filename || "Unnamed")}
-              </div>
-            </td>
-            <td><span style="color: var(--text-secondary); text-transform: capitalize;">${item.media_type || "file"}</span></td>
-            <td>${sizeStr}</td>
-            <td>${statusBadge}</td>
-            <td>${dateStr}</td>
-            <td>
-              <button class="btn btn-secondary btn-sm" onclick="FilesModule.viewDetails('${item.id}')">👁 View</button>
-              ${item.status === 'completed' ? `<a href="/api/files/${item.id}/download" class="btn btn-blue btn-sm">⬇</a>` : ''}
-            </td>
-          </tr>
-        `;
-      }).join("");
+      if (tableBody) {
+        tableBody.innerHTML = window.FilesModule.renderTableRowsHtml(items);
+      }
+      if (mobileCards) {
+        mobileCards.innerHTML = window.FilesModule.renderFileCardsHtml(items);
+      }
 
       if (pageInfo) {
         pageInfo.textContent = `Page ${result.page} of ${result.total_pages || 1} (${result.total} results)`;
@@ -80,6 +70,9 @@ const SearchModule = {
       console.error("Search error:", err);
       if (tableBody) {
         tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--accent-danger);">${err.message}</td></tr>`;
+      }
+      if (mobileCards) {
+        mobileCards.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--accent-danger);">${err.message}</div>`;
       }
     }
   },

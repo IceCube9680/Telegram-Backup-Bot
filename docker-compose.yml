@@ -103,7 +103,7 @@ services:
       - MT_PROTO_ENABLED=${MT_PROTO_ENABLED:-false}
       - MT_PROTO_API_ID=${MT_PROTO_API_ID:-}
       - MT_PROTO_API_HASH=${MT_PROTO_API_HASH:-}
-      - MT_PROTO_SESSION_PATH=/app/secrets/mtproto_worker.session
+      - MT_PROTO_SESSION_PATH=/app/secrets/telegram_bot_mtproto.session
       - MT_PROTO_CHUNK_SIZE=${MT_PROTO_CHUNK_SIZE:-1048576}
       - MT_PROTO_CONCURRENCY=${MT_PROTO_CONCURRENCY:-1}
       - LARGE_FILE_THRESHOLD=${LARGE_FILE_THRESHOLD:-20971520}

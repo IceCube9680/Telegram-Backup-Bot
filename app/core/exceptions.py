@@ -143,6 +143,17 @@ class TelegramPermanentError(TaskProcessingError):
         super().__init__(message=message, status_code=400, details=details)
 
 
+class MTProtoAccessError(TelegramPermanentError):
+    """Permanent error when MTProto cannot resolve or access a Telegram message or media."""
+
+    def __init__(
+        self,
+        message: str = "MTProto cannot access target message or media",
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(message=message, details=details)
+
+
 class StorageProcessingError(TaskProcessingError):
     """Error persisting downloaded file to storage service."""
 

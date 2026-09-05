@@ -10,14 +10,43 @@ const FilesModule = {
   currentStatus: null,
   currentMediaType: null,
 
+  async loadRecentFiles() {
+    const tableBody = document.getElementById("files-table-body");
+    const mobileCards = document.getElementById("recent-files-mobile-cards");
+    const emptyState = document.getElementById("files-empty-state");
+
+    try {
+      const result = await window.api.get("/files", { page: 1, page_size: 5 });
+      const items = result.items || [];
+
+      if (items.length === 0) {
+        if (tableBody) tableBody.innerHTML = "";
+        if (mobileCards) mobileCards.innerHTML = "";
+        if (emptyState) emptyState.style.display = "block";
+        return;
+      }
+
+      if (emptyState) emptyState.style.display = "none";
+      if (tableBody) tableBody.innerHTML = this.renderTableRowsHtml(items);
+      if (mobileCards) mobileCards.innerHTML = this.renderFileCardsHtml(items);
+    } catch (err) {
+      console.error("Failed to load recent files:", err);
+      if (tableBody) tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--accent-danger);">Failed to load recent files</td></tr>`;
+    }
+  },
+
   async loadFiles(page = 1) {
     this.currentPage = page;
-    const tableBody = document.getElementById("files-table-body");
+    const tableBody = document.getElementById("files-full-table-body");
+    const mobileCards = document.getElementById("files-full-mobile-cards");
     const emptyState = document.getElementById("files-empty-state");
     const paginationContainer = document.getElementById("files-pagination");
 
     if (tableBody) {
-      tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: var(--text-secondary);">Loading backups...</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px; color: var(--text-secondary);">Loading backups...</td></tr>`;
+    }
+    if (mobileCards) {
+      mobileCards.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--text-secondary);">Loading backups...</div>`;
     }
 
     try {
@@ -31,9 +60,11 @@ const FilesModule = {
 
       const result = await window.api.get("/files", params);
       this.totalPages = result.total_pages || 1;
+      const items = result.items || [];
 
-      if (!result.items || result.items.length === 0) {
+      if (items.length === 0) {
         if (tableBody) tableBody.innerHTML = "";
+        if (mobileCards) mobileCards.innerHTML = "";
         if (emptyState) emptyState.style.display = "block";
         if (paginationContainer) paginationContainer.style.display = "none";
         return;
@@ -42,31 +73,33 @@ const FilesModule = {
       if (emptyState) emptyState.style.display = "none";
       if (paginationContainer) paginationContainer.style.display = "flex";
 
-      this.renderTable(result.items);
+      if (tableBody) tableBody.innerHTML = this.renderTableRowsHtml(items);
+      if (mobileCards) mobileCards.innerHTML = this.renderFileCardsHtml(items);
       this.renderPagination(result);
     } catch (err) {
       console.error("Failed to load files:", err);
       if (tableBody) {
-        tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: var(--accent-danger);">Error loading files: ${err.message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px; color: var(--accent-danger);">Error loading files: ${err.message}</td></tr>`;
+      }
+      if (mobileCards) {
+        mobileCards.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--accent-danger);">Error loading files: ${err.message}</div>`;
       }
     }
   },
 
-  renderTable(items) {
-    const tableBody = document.getElementById("files-table-body");
-    if (!tableBody) return;
-
-    tableBody.innerHTML = items.map(item => {
+  renderTableRowsHtml(items) {
+    return items.map(item => {
       const sizeStr = item.file_size ? window.formatBytes(item.file_size) : "—";
       const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : "—";
       const statusBadge = `<span class="badge badge-${item.status}">${item.status}</span>`;
+      const icon = this.getMediaIcon(item.media_type);
 
       return `
         <tr>
           <td>
-            <div style="display: flex; align-items: center; gap: 8px; font-weight: 500;">
-              <span>📄</span>
-              <span title="${item.original_filename}">${this.escapeHtml(item.original_filename)}</span>
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 500; min-width: 0;">
+              <span>${icon}</span>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px;" title="${this.escapeHtml(item.original_filename)}">${this.escapeHtml(item.original_filename)}</span>
             </div>
           </td>
           <td><span style="color: var(--text-secondary); text-transform: capitalize;">${item.media_type}</span></td>
@@ -85,6 +118,56 @@ const FilesModule = {
         </tr>
       `;
     }).join("");
+  },
+
+  renderFileCardsHtml(items) {
+    return items.map(item => {
+      const sizeStr = item.file_size ? window.formatBytes(item.file_size) : "—";
+      const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : "—";
+      const statusBadge = `<span class="badge badge-${item.status}">${item.status}</span>`;
+      const icon = this.getMediaIcon(item.media_type);
+
+      return `
+        <div class="file-card">
+          <div class="file-card-top">
+            <div class="file-card-title-group">
+              <span class="file-card-icon">${icon}</span>
+              <div style="min-width: 0; flex: 1;">
+                <div class="file-card-name" title="${this.escapeHtml(item.original_filename)}">${this.escapeHtml(item.original_filename)}</div>
+                <div class="file-card-meta">
+                  <span style="text-transform: capitalize;">${item.media_type}</span>
+                  <span>•</span>
+                  <span>${sizeStr}</span>
+                  <span>•</span>
+                  <span>${dateStr}</span>
+                </div>
+              </div>
+            </div>
+            <div>${statusBadge}</div>
+          </div>
+          <div class="file-card-bottom">
+            <button class="btn btn-secondary btn-sm" onclick="FilesModule.viewDetails('${item.id}')">👁 Details</button>
+            <div class="file-card-actions">
+              ${item.status === 'completed' ? `<a href="/api/files/${item.id}/download" class="btn btn-blue btn-sm">⬇ Download</a>` : ''}
+              ${item.status === 'failed' ? `<button class="btn btn-secondary btn-sm" onclick="FilesModule.retryFile('${item.id}')">🔄 Retry</button>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="FilesModule.openMoveModal('${item.id}')" title="Move">📁</button>
+              <button class="btn btn-danger btn-sm" onclick="FilesModule.promptDelete('${item.id}', '${this.escapeHtml(item.original_filename)}')">🗑</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  },
+
+  getMediaIcon(mediaType) {
+    switch (mediaType) {
+      case "photo": return "🖼";
+      case "video": return "🎥";
+      case "audio": return "🎵";
+      case "voice": return "🎤";
+      case "animation": return "🎞";
+      default: return "📄";
+    }
   },
 
   renderPagination(result) {
@@ -166,6 +249,7 @@ const FilesModule = {
       window.closeModal("modal-delete-confirm");
       window.showToast("File deleted successfully", "success");
       this.loadFiles(this.currentPage);
+      this.loadRecentFiles();
       window.StatsModule.loadStats();
     } catch (err) {
       window.showToast(`Failed to delete file: ${err.message}`, "error");
@@ -177,6 +261,7 @@ const FilesModule = {
       const res = await window.api.post(`/files/${fileId}/retry`);
       window.showToast(res.message || "Task re-queued", "success");
       this.loadFiles(this.currentPage);
+      this.loadRecentFiles();
       window.StatsModule.loadStats();
     } catch (err) {
       window.showToast(`Retry failed: ${err.message}`, "error");
@@ -207,6 +292,7 @@ const FilesModule = {
           window.closeModal("modal-move-file");
           window.showToast("File moved successfully", "success");
           this.loadFiles(this.currentPage);
+          this.loadRecentFiles();
         } catch (err) {
           window.showToast(`Move failed: ${err.message}`, "error");
         }

@@ -8,8 +8,20 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
+    <!-- Mobile Header (Visible only on mobile <768px) -->
+    <header class="mobile-header">
+      <div class="mobile-brand">
+        <span class="brand-icon">📦</span>
+        <span class="mobile-brand-title">Backup Bot</span>
+      </div>
+      <div class="mobile-user-profile">
+        <div id="mobile-user-avatar" class="user-avatar" title="Account">U</div>
+        <button id="mobile-btn-logout" class="btn-logout" title="Sign Out">🚪</button>
+      </div>
+    </header>
+
+    <!-- Desktop Sidebar Navigation (Visible only on desktop >=768px) -->
+    <aside class="sidebar desktop-sidebar">
       <div class="brand">
         <span class="brand-icon">📦</span>
         <div>
@@ -73,11 +85,25 @@
     <main class="main-content">
       <!-- 1. Dashboard View -->
       <section id="view-dashboard" class="view-section active">
-        <div class="content-header">
-          <div>
-            <h2 class="page-title">Overview Dashboard</h2>
-            <p class="page-subtitle">Summary of your Telegram backup vault and recent activity</p>
+        <!-- Welcome & Storage Overview Banner -->
+        <div class="welcome-card card-panel">
+          <div class="welcome-header">
+            <h2 id="welcome-user-title" class="welcome-title">Welcome back, Ice Cube</h2>
+            <p class="welcome-subtitle">Summary of your Telegram backup vault and recent activity</p>
           </div>
+          <div class="storage-widget">
+            <div class="storage-widget-header">
+              <span class="storage-widget-label">Storage</span>
+              <span id="storage-widget-text" class="storage-widget-text">0 B / Unlimited</span>
+            </div>
+            <div class="storage-progress-bar">
+              <div id="storage-progress-bar-fill" class="storage-progress-fill" style="width: 25%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title-wrap">
+          <h3 class="section-heading">Quick Stats</h3>
         </div>
 
         <!-- Stats Grid -->
@@ -115,11 +141,12 @@
         <!-- Quick Actions & Recent Files Panel -->
         <div class="card-panel">
           <div class="panel-header">
-            <h3 class="panel-title">Recent Backup Files</h3>
+            <h3 class="panel-title">Recent Files</h3>
             <button class="btn btn-secondary btn-sm" onclick="navigateToTab('files')">View All Files →</button>
           </div>
 
-          <div class="table-wrapper">
+          <!-- Desktop Table (>=768px) -->
+          <div class="table-wrapper desktop-only">
             <table class="data-table">
               <thead>
                 <tr>
@@ -135,6 +162,11 @@
                 <!-- Dynamically populated -->
               </tbody>
             </table>
+          </div>
+
+          <!-- Mobile File Cards (<768px) -->
+          <div id="recent-files-mobile-cards" class="mobile-file-cards mobile-only">
+            <!-- Dynamically populated -->
           </div>
 
           <div id="files-empty-state" class="empty-state" style="display: none;">
@@ -179,7 +211,8 @@
             <button class="btn btn-secondary btn-sm" onclick="FilesModule.loadFiles(FilesModule.currentPage)">🔄 Refresh</button>
           </div>
 
-          <div class="table-wrapper">
+          <!-- Desktop Table (>=768px) -->
+          <div class="table-wrapper desktop-only">
             <table class="data-table">
               <thead>
                 <tr>
@@ -195,6 +228,11 @@
                 <!-- Files loaded by JS -->
               </tbody>
             </table>
+          </div>
+
+          <!-- Mobile File Cards (<768px) -->
+          <div id="files-full-mobile-cards" class="mobile-file-cards mobile-only">
+            <!-- Dynamically populated -->
           </div>
 
           <div id="files-pagination" class="pagination-container">
@@ -223,7 +261,8 @@
           </form>
 
           <div id="search-results-panel" style="display: none;">
-            <div class="table-wrapper">
+            <!-- Desktop Table (>=768px) -->
+            <div class="table-wrapper desktop-only">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -238,6 +277,9 @@
                 <tbody id="search-table-body"></tbody>
               </table>
             </div>
+
+            <!-- Mobile File Cards (<768px) -->
+            <div id="search-mobile-cards" class="mobile-file-cards mobile-only"></div>
 
             <div id="search-empty-state" class="empty-state" style="display: none;">
               <div class="empty-icon">🔍</div>
@@ -302,7 +344,7 @@
         <!-- Tagged Files Table Panel -->
         <div id="tagged-files-panel" class="card-panel" style="display: none; margin-top: 24px;">
           <h3 id="tagged-files-title" class="panel-title" style="margin-bottom: 16px;">Tagged Files</h3>
-          <div class="table-wrapper">
+          <div class="table-wrapper desktop-only">
             <table class="data-table">
               <thead>
                 <tr>
@@ -316,6 +358,7 @@
               <tbody id="tagged-files-tbody"></tbody>
             </table>
           </div>
+          <div id="tagged-files-mobile-cards" class="mobile-file-cards mobile-only"></div>
         </div>
       </section>
 
@@ -375,6 +418,30 @@
         </div>
       </section>
     </main>
+
+    <!-- Mobile Bottom Navigation (Visible only on mobile <768px) -->
+    <nav class="mobile-bottom-nav">
+      <a href="#" class="mobile-nav-item active" data-tab="dashboard">
+        <span class="mobile-nav-icon">📊</span>
+        <span class="mobile-nav-label">Home</span>
+      </a>
+      <a href="#" class="mobile-nav-item" data-tab="files">
+        <span class="mobile-nav-icon">📁</span>
+        <span class="mobile-nav-label">Files</span>
+      </a>
+      <a href="#" class="mobile-nav-item" data-tab="search">
+        <span class="mobile-nav-icon">🔍</span>
+        <span class="mobile-nav-label">Search</span>
+      </a>
+      <a href="#" class="mobile-nav-item" data-tab="folders">
+        <span class="mobile-nav-icon">📂</span>
+        <span class="mobile-nav-label">Folders</span>
+      </a>
+      <a href="#" class="mobile-nav-item" data-tab="stats">
+        <span class="mobile-nav-icon">📈</span>
+        <span class="mobile-nav-label">Stats</span>
+      </a>
+    </nav>
   </div>
 
   <!-- Modals -->
@@ -403,7 +470,7 @@
           <span style="color: var(--text-secondary);">Backup Date:</span>
           <span id="fd-date">—</span>
           <span style="color: var(--text-secondary);">SHA-256:</span>
-          <span id="fd-sha256" style="font-family: monospace; font-size: 12px;">—</span>
+          <span id="fd-sha256" style="font-family: monospace; font-size: 12px; word-break: break-all;">—</span>
         </div>
       </div>
       <div class="modal-footer">
